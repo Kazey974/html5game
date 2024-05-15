@@ -1,0 +1,23 @@
+name: Deploy
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Executing remote command
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.HOST }}
+        USERNAME: ${{ secrets.USERNAME }}
+        PORT: 22
+        KEY: ${{ secrets.SSHKEY }}
+        script: |
+          cd /var/www/html/
+          git reset --hard ROOT
+          git pull origin main
