@@ -17,6 +17,7 @@ const right = ["ArrowRight","D","d"];
 const up = ["ArrowUp","Z","z"];
 const left = ["ArrowLeft","Q","q"];
 
+
 const player = new PIXI.Container();
 const animations = {};
 await PIXI.Assets.load("assets/sprites/link.png");
@@ -26,6 +27,34 @@ const map = new PIXI.Container();
 const maptile = await SpriteFrom("assets/map/map.png");
 map.addChild(maptile);
 map.addChild(player);
+
+const videoAsset = await PIXI.Assets.load('https://pixijs.com/assets/video.mp4');
+const button = new PIXI.Graphics()
+.roundRect(0, 0, 100, 100, 10)
+.fill(0xffffff, 0.5)
+.beginPath()
+.moveTo(36, 30)
+.lineTo(36, 70)
+.lineTo(70, 50)
+.closePath()
+.fill(0xffffff);
+button.eventMode = 'static';
+button.cursor = 'pointer';  
+button.x = 320;
+button.y = 730;
+map.addChild(button);
+button.on('pointertap', () => {
+    console.log("Test");
+
+    button.destroy();
+    const video = new PIXI.Sprite(videoAsset);
+    video.width = 100;
+    video.height = 100;
+    video.x = 320;
+    video.y = 730;
+
+    map.addChild(video);
+})
 
 createCollider(240,290,140,135,"house");
 createCollider(0,375,110,10,"house_hill1");
