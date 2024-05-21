@@ -1,0 +1,30 @@
+<html>
+    <title>HTML5GAME</title>
+    <head>
+        <script src="https://pixijs.download/release/pixi.js"></script>
+        <style>
+            body {
+                background: #101010;
+                text-align: center;
+            }
+
+            @media screen and (orientation:portrait) {
+                canvas {
+                    width: 100%;
+                }
+            }
+
+            @media screen and (orientation:landscape) {
+                canvas {
+                    height: 100%;
+                }
+            }
+        </style>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <link rel="manifest" href="/public/manifest.json" />
+    </head>
+    <body>
+        <script type="module" src="/public/pixiApp.js"></script>
+    </body>
+</html>

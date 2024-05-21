@@ -1,7 +1,0 @@
-{
-    "short_name": "HTML5GAME",
-    "name": "Game in HTML5 with Pixi.js",
-    "start_url": "index.html",
-    "display": "standalone",
-    "orientation": "landscape"
-}
