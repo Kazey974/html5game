@@ -10,7 +10,7 @@ const colliders = [];
 let MOVESPEED = 2.7;
 let SCREENSENSITIVITY = 30;
 let DEBUG = true;
-let SET_COLLIDER = true;
+let SETCCOLLIDER = true;
 let SCALE = 1;
 
 var keys = new Set();
