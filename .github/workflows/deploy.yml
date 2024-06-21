@@ -18,7 +18,7 @@ jobs:
         PORT: 22
         KEY: ${{ secrets.SSHKEY }}
         script: |
-          cd /var/www/html/
+          cd /var/www/html/html5game/
           git reset --hard ROOT
           git pull origin main
           npm install
