@@ -1,5 +1,3 @@
-import PIXI from "./lib/PixiJS_v8.2.0.js";
-
 const loader = {
     assets: [],
     assetAdd(...urls) {

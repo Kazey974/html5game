@@ -1,5 +1,3 @@
-import PIXI from "../lib/PixiJS_v8.2.0.js";
-
 export class Gameobject {
     constructor(name, x = 0, y = 0) {
         this.name = name;

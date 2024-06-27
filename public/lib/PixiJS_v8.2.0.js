@@ -43049,5 +43049,4 @@ ${e}`);
 
 })({});
 
-export default PIXI;
 //# sourceMappingURL=pixi.js.map

@@ -1,8 +1,6 @@
 import game from "./game.js";
 import state from "./modules/state.js";
 import update from "./modules/update.js";
-import PIXI from "./lib/PixiJS_v8.2.0.js";
-
 
 const app = new PIXI.Application();
 await app.init({ resizeTo: window });
