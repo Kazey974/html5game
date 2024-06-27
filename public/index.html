@@ -1,12 +1,20 @@
 <html>
-    <title>HTML5GAME</title>
+    <title>SpaceGame</title>
     <head>
-        <script src="https://pixijs.download/release/pixi.js"></script>
+        <style>
+            body {
+                margin: 0;
+            }
+        </style>
+        <script type="module" src="/lib/Box2D_v2.3.1_min.js"></script>
+        <script type="module" src="/lib/PixiJS_v8.2.0.js"></script>
+        <script type="module" src="/pixiApp.js"></script>
+        <script src="https://unpkg.com/@pixi/sound/dist/pixi-sound.js"></script>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <link rel="manifest" href="/public/manifest.json" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="data:;base64,=">
     </head>
-    <body>
-        <script type="module" src="/public/pixiApp.js"></script>
+    <body oncontextmenu="return false">
     </body>
 </html>

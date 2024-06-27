@@ -5,5 +5,12 @@
   },
   "scripts": {
     "start": "nodemon app.js"
-  }
+  },
+  "name": "html5game",
+  "version": "1.0.0",
+  "main": "app.js",
+  "devDependencies": {},
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }

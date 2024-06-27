@@ -1,10 +1,10 @@
-const express = require('express');
+const express = require('express'),
+    url = require('url'),
+    path = require('path'),
+    fs = require('fs');
+
 const app = express();
 
-app.use('/public', express.static(__dirname + '/public'));
-
-app.use('/', function(req, res) {
-    res.sendFile(__dirname + '/public/index.html');
-});
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.listen(3000);
