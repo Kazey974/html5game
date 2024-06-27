@@ -7,10 +7,10 @@ export default {
             }
         }
     },
-    addUpdate(func,id = this.list.length) {
+    add(func,id = this.list.length) {
         this.list[id] = func;
     },
-    removeUpdate(id) {
+    remove(id) {
         delete this.list[id];
     }
 }
