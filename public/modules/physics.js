@@ -9,7 +9,7 @@ export function initPhysics() {
     state.physicsWorld = world;
 
     update.add(() => {
-        world.Step(1/30, 1, 2);
+        world.Step(1/30, 2, 2);
     }, 'physicsWorld.step');
 };
 
@@ -32,7 +32,6 @@ export function createCircleBody(x, y, width, dynamic = false, ratio = 1) {
     var bodyShape = new Box2D.b2CircleShape();
     bodyShape.m_radius = (width) / ratio;
     body.CreateFixture(bodyShape, 1);
-    body.SetFixedRotation(true);
 
     return body;
 };

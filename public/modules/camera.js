@@ -17,7 +17,10 @@ export default {
                 state.level.y = (window.innerHeight / 2);
             }
 
-            console.log(state.level.x, state.level.y);
+            console.log(
+                [state.level.pivot.x, state.level.pivot.y],
+                [this.following.x, this.following.y]
+            );
         }
     },
     follow(object) {
