@@ -1,4 +1,5 @@
 import { createCircleBody } from "./physics.js";
+import { Euler, Object3D } from "../lib/three_v0.166.0.min.js";
 import Box2D from "../lib/Box2D_v2.3.1_min.js";
 import settings from "./settings.js";
 import update from "./update.js"
@@ -8,35 +9,28 @@ export class Gameobject {
     constructor(name, id, x = 0, y = 0) {
         this.name = name;
         this.id = id;
-        this.container = new PIXI.Container();
-        this.container.x = x;
-        this.container.y = y;
+        this.object = new Object3D();
+        this.object.position.setX(x);
+        this.object.position.setY(y);
         
         return this;
     }
 
     addTo(parent) {
         this.parent = parent;
-        parent.addChild(this.container);
+        parent.add(this.object);
 
         return this;
     }
 
     addChild(child) {
-        this.container.addChild(child);
-
-        return this;
-    }
-
-    setPivot(x = this.container.width / 2, y = this.container.height / 2) {
-        this.container.pivot.x = x;
-        this.container.pivot.y = y;
+        this.object.add(child);
 
         return this;
     }
 
     addCircleBody() {
-        this.rigidbody = createCircleBody(this.container.x, this.container.y, 10, true);
+        this.rigidbody = createCircleBody(this.object.position.x, this.object.position.y, 0.1, true);
 
         return this;
     }
@@ -44,11 +38,12 @@ export class Gameobject {
     setPhysicsPos() {
         update.add(() => {
             let physicsPos = this.rigidbody.GetPosition();
-            this.container.x = physicsPos.x * settings.BOX2D_CONVERSION_SCALE;
-            this.container.y = physicsPos.y * settings.BOX2D_CONVERSION_SCALE;
+            this.object.position.setX(physicsPos.x * settings.BOX2D_CONVERSION_SCALE);
+            this.object.position.setY(physicsPos.y * settings.BOX2D_CONVERSION_SCALE);
 
             let physicsRotation = this.rigidbody.GetAngle();
-            this.container.rotation = physicsRotation;
+            let euler = new Euler(0,0,physicsRotation * (Math.PI / 180));
+            this.object.setRotationFromEuler(euler);
         }, [this.name, this.id, ".physicspos"].join());
 
         return this;
@@ -103,7 +98,7 @@ export class Gameobject {
 
     remove() {
         update.remove([this.name, this.id, ".physicspos"].join());
-        this.parent.removeChild(this.container);
+        this.parent.remove(this.object);
         state.physicsWorld.DestroyBody(this.rigidbody);
         delete state.players[this.id];
     }

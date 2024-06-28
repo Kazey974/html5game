@@ -8,7 +8,7 @@ const gameServer = (server) => {
     };
 
     io.on("connection", (socket) => {
-        console.log("IO - user connected : " + socket.id);
+        console.log("IO - user connected : " + socket.id, Object.keys(objectList.players).length);
 
         socket.on("disconnect", () => {
             console.log("IO - user disconnected : " + socket.id);
@@ -24,9 +24,27 @@ const gameServer = (server) => {
     });
 
     function initPlayer(socket) {
+        let position = {x: Math.random() * 1, y: Math.random() * 1};
+        let isValid = false;
+
+        while(!isValid) {
+            isValid = true;
+            for (let id in objectList.players) {
+                let player = objectList.players[id];
+                let diff = Math.abs(position.x - player.position.x) + Math.abs(position.y - player.position.y);
+                if (diff <= 0.1) {
+                    isValid = false;
+                }
+            }
+
+            if (!isValid) {
+                position.y -= 0.1;
+            }
+        }
+
         let newPlayer = {
             id: socket.id,
-            position: {x: Math.random() * 100, y: Math.random() * 100},
+            position: position,
             color: Math.random() * 0xffffff
         };
     
