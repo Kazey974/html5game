@@ -2,11 +2,12 @@ import { createCircleBody } from "./physics.js";
 import Box2D from "../lib/Box2D_v2.3.1_min.js";
 import settings from "./settings.js";
 import update from "./update.js"
+import state from "./state.js";
 
 export class Gameobject {
-    constructor(name, x = 0, y = 0) {
+    constructor(name, id, x = 0, y = 0) {
         this.name = name;
-
+        this.id = id;
         this.container = new PIXI.Container();
         this.container.x = x;
         this.container.y = y;
@@ -15,6 +16,7 @@ export class Gameobject {
     }
 
     addTo(parent) {
+        this.parent = parent;
         parent.addChild(this.container);
 
         return this;
@@ -47,7 +49,7 @@ export class Gameobject {
 
             let physicsRotation = this.rigidbody.GetAngle();
             this.container.rotation = physicsRotation;
-        }, this.name + ".physicspos");
+        }, [this.name, this.id, ".physicspos"].join());
 
         return this;
     }
@@ -97,5 +99,12 @@ export class Gameobject {
         }
 
         return this;
+    }
+
+    remove() {
+        update.remove([this.name, this.id, ".physicspos"].join());
+        this.parent.removeChild(this.container);
+        state.physicsWorld.DestroyBody(this.rigidbody);
+        delete state.players[this.id];
     }
 }

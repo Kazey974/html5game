@@ -18,16 +18,32 @@ export default {
 
         update.add(() => {
             let magnitude = 0.01 * state.deltaTime;
-            if (settings.defaultControls.up.filter((k) => this.keysPressed.has(k)).length) {
+            let [up, down, left,right ] = [
+                settings.defaultControls.up.filter((k) => this.keysPressed.has(k)).length,
+                settings.defaultControls.down.filter((k) => this.keysPressed.has(k)).length,
+                settings.defaultControls.left.filter((k) => this.keysPressed.has(k)).length,
+                settings.defaultControls.right.filter((k) => this.keysPressed.has(k)).length
+            ];
+            let inputs = [];
+
+            if (up) {
                 this.object.addVelocity(0, -magnitude, true);
-            } else if (settings.defaultControls.down.filter((k) => this.keysPressed.has(k)).length) {
+                inputs.push("up");
+            } else if (down) {
                 this.object.addVelocity(0, magnitude, true);
+                inputs.push("down");
             }
 
-            if (settings.defaultControls.left.filter((k) => this.keysPressed.has(k)).length) {
+            if (left) {
                 this.object.setRotation(-magnitude * 4);
-            } else if (settings.defaultControls.right.filter((k) => this.keysPressed.has(k)).length) {
+                inputs.push("left");
+            } else if (right) {
                 this.object.setRotation(magnitude * 4);
+                inputs.push("right");
+            }
+
+            if (inputs.length) {
+                state.socket.emit('inputs', inputs);
             }
         }, "control");
     }

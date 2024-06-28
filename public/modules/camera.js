@@ -4,6 +4,7 @@ import update from "./update.js";
 export default {
     following: {x: 0, y: 0},
 
+    //TODO: Fix camera not following at great speeds
     centerOn(x, y) {
         if (state.level) {
             state.level.pivot.x = this.following.x;
@@ -16,11 +17,6 @@ export default {
             if (state.level.y !== (window.innerHeight / 2)) {
                 state.level.y = (window.innerHeight / 2);
             }
-
-            console.log(
-                [state.level.pivot.x, state.level.pivot.y],
-                [this.following.x, this.following.y]
-            );
         }
     },
     follow(object) {
