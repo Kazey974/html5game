@@ -1,17 +1,19 @@
-import { createCircleBody } from "./physics.js";
+import { Quat, Vec3, createSphereBody, destroy } from "./physics.js";
 import { Euler, Object3D } from "../lib/three_v0.166.0.min.js";
-import Box2D from "../lib/Box2D_v2.3.1_min.js";
-import settings from "./settings.js";
 import update from "./update.js"
 import state from "./state.js";
 
+const MOVING = false;
+
 export class Gameobject {
-    constructor(name, id, x = 0, y = 0) {
+    constructor(name, id, x = 0, y = 0, z = 0) {
         this.name = name;
         this.id = id;
         this.object = new Object3D();
         this.object.position.setX(x);
         this.object.position.setY(y);
+        this.object.position.setZ(z);
+        this.shouldDestroy = [];
         
         return this;
     }
@@ -29,77 +31,105 @@ export class Gameobject {
         return this;
     }
 
-    addCircleBody() {
-        this.rigidbody = createCircleBody(this.object.position.x, this.object.position.y, 0.1, true);
+    addSphereBody() {
+        this.rigidbody = createSphereBody(state.players.length, this.object.position.x, this.object.position.y, this.object.position.z, 1, true);
 
         return this;
     }
 
     setPhysicsPos() {
+        let id = [this.name, this.id, ".physicspos"].join("");
+        
         update.add(() => {
             let physicsPos = this.rigidbody.GetPosition();
-            this.object.position.setX(physicsPos.x * settings.BOX2D_CONVERSION_SCALE);
-            this.object.position.setY(physicsPos.y * settings.BOX2D_CONVERSION_SCALE);
+            this.object.position.setX(physicsPos.GetX());
+            this.object.position.setY(physicsPos.GetY());
+            this.object.position.setZ(physicsPos.GetZ());
 
-            let physicsRotation = this.rigidbody.GetAngle();
-            let euler = new Euler(0,0,physicsRotation * (Math.PI / 180));
+            let physicsRotation = this.rigidbody.GetRotation().GetEulerAngles();
+            let euler = new Euler(physicsRotation.GetX(), physicsRotation.GetY(), physicsRotation.GetZ());
             this.object.setRotationFromEuler(euler);
-        }, [this.name, this.id, ".physicspos"].join());
+
+            // console.log(this.id, {
+            //     y: Math.floor(this.object.position.y),
+            //     v: Math.floor(this.rigidbody.GetLinearVelocity().GetY())
+            // });
+        }, id);
+
+        this.shouldDestroy.push(id);
+        return this;
+    }
+
+    setVelocity(x, y, z, relative = false) {
+        if (this.rigidbody) {
+            if (!this.rigidbody.IsActive()) {
+                state.physicsWorld.ActivateBody(
+                    this.rigidbody.GetID()
+                );
+            }
+            
+            let forward = this.rigidbody.GetRotation().RotateAxisY();
+            let direction = !relative ? Vec3(x, y, z) : forward.Mul(y);
+
+            this.rigidbody.SetLinearVelocity(direction);
+
+            if (!relative) {
+                destroy(direction);
+            }
+        }
 
         return this;
     }
 
-    setVelocity(x, y, relative = false) {
+    addVelocity(x, y, z, relative = false) {
         if (this.rigidbody) {
-            let direction = new Box2D.b2Vec2(x, y);
 
-            if (relative) {
-                direction = this.rigidbody.GetWorldVector(direction);
+            let forward = this.rigidbody.GetRotation().RotateAxisY();
+            let direction = !relative ? Vec3(x, y, z) : forward.Mul(y);
+
+            this.rigidbody.AddForce(direction);
+
+            if (!relative) {
+                destroy(direction);
             }
-            
-            this.rigidbody.SetLinearVelocity(direction);
-
-            return this;
         }
-    }
 
-    addVelocity(x, y, relative = false) {
-        if (this.rigidbody) {
-            let direction = new Box2D.b2Vec2(x, y);
-            let current = this.rigidbody.GetLinearVelocity();
-
-            if (relative) {
-                direction = this.rigidbody.GetWorldVector(direction);
-                direction = new Box2D.b2Vec2(
-                    direction.x + current.x,
-                    direction.y + current.y
-                );
-            }
-            
-            this.rigidbody.SetLinearVelocity(direction);
-
-            return this;
-        }
+        return this;
     }
 
     setRotation(modifier = 0) {
         if (this.rigidbody) {
-            let currentRotation = this.rigidbody.GetAngle();
-            let currentPosition = this.rigidbody.GetPosition();
-
-            this.rigidbody.SetTransform(
-                currentPosition,
-                currentRotation + modifier
+            let currentRotation = this.rigidbody.GetRotation();
+            let temp = Math.asin(currentRotation.GetZ()) + modifier;
+            if (temp < (-Math.PI / 2) || temp > (Math.PI / 2)) {
+                temp = -temp;
+            }
+            let newRotation = new Quat(
+                currentRotation.GetX(),
+                currentRotation.GetY(),
+                Math.sin(temp),
+                Math.cos(temp)
             );
+
+            state.physicsWorld.SetRotation(
+                this.rigidbody.GetID(),
+                newRotation,
+                "Activate"
+            );
+
+            destroy(newRotation);
         }
 
         return this;
     }
 
     remove() {
-        update.remove([this.name, this.id, ".physicspos"].join());
+        for (let id of this.shouldDestroy) {
+            update.remove(id);
+        }
+
         this.parent.remove(this.object);
-        state.physicsWorld.DestroyBody(this.rigidbody);
+        state.physicsDeactivateQueue.push(this.rigidbody.GetID());
         delete state.players[this.id];
     }
 }

@@ -24,7 +24,7 @@ const gameServer = (server) => {
     });
 
     function initPlayer(socket) {
-        let position = {x: Math.random() * 1, y: Math.random() * 1};
+        let position = {x: Math.random() * 1, y: Math.random() * 1,  z: 0};
         let isValid = false;
 
         while(!isValid) {
@@ -32,13 +32,13 @@ const gameServer = (server) => {
             for (let id in objectList.players) {
                 let player = objectList.players[id];
                 let diff = Math.abs(position.x - player.position.x) + Math.abs(position.y - player.position.y);
-                if (diff <= 0.1) {
+                if (diff <= 3) {
                     isValid = false;
                 }
             }
 
             if (!isValid) {
-                position.y -= 0.1;
+                position.y -= 3;
             }
         }
 

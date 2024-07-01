@@ -5,7 +5,7 @@ import game from "./game.js";
 
 const width = window.innerWidth, height = window.innerHeight;
 
-const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 10);
+const camera = new THREE.PerspectiveCamera(70, width / height, 0.01, 100);
 camera.position.z = 2;
 
 const scene = new THREE.Scene();
@@ -16,10 +16,13 @@ document.body.appendChild(renderer.domElement);
 
 state.level = scene;
 state.camera = camera;
+state.time = Date.now();
 
-function ticker(time) {
-    state.deltaTime = time - state.time;
-    state.time = time;
+const clock = new THREE.Clock();
+
+function ticker() {
+    state.deltaTime = clock.getDelta();
+    state.time += state.deltaTime;
  
     update.proc();
 	renderer.render(scene, camera);
