@@ -1,5 +1,5 @@
 import { Quat, Vec3, createSphereBody, destroy } from "./physics.js";
-import { Euler, Object3D } from "../lib/three_v0.166.0.min.js";
+import { Euler, Object3D, Vector3 } from "../lib/three_v0.166.0.min.js";
 import update from "./update.js"
 import state from "./state.js";
 
@@ -42,18 +42,12 @@ export class Gameobject {
         
         update.add(() => {
             let physicsPos = this.rigidbody.GetPosition();
-            this.object.position.setX(physicsPos.GetX());
-            this.object.position.setY(physicsPos.GetY());
-            this.object.position.setZ(physicsPos.GetZ());
+            let newPos = this.object.position.lerp(new Vector3(physicsPos.GetX(), physicsPos.GetY(), physicsPos.GetZ()), 0.5);
+            this.object.position.set(newPos.x, newPos.y, newPos.z);
 
             let physicsRotation = this.rigidbody.GetRotation().GetEulerAngles();
             let euler = new Euler(physicsRotation.GetX(), physicsRotation.GetY(), physicsRotation.GetZ());
             this.object.setRotationFromEuler(euler);
-
-            // console.log(this.id, {
-            //     y: Math.floor(this.object.position.y),
-            //     v: Math.floor(this.rigidbody.GetLinearVelocity().GetY())
-            // });
         }, id);
 
         this.shouldDestroy.push(id);
@@ -83,7 +77,6 @@ export class Gameobject {
 
     addVelocity(x, y, z, relative = false) {
         if (this.rigidbody) {
-
             let forward = this.rigidbody.GetRotation().RotateAxisY();
             let direction = !relative ? Vec3(x, y, z) : forward.Mul(y);
 
@@ -129,7 +122,7 @@ export class Gameobject {
         }
 
         this.parent.remove(this.object);
-        state.physicsDeactivateQueue.push(this.rigidbody.GetID());
+        state.physicsRemoveQueue.push(this.rigidbody.GetID());
         delete state.players[this.id];
     }
 }

@@ -10,6 +10,7 @@
   "name": "html5game",
   "version": "1.0.0",
   "main": "app.js",
+  "type": "module",
   "author": "",
   "license": "ISC",
   "description": ""

@@ -18,11 +18,9 @@ state.level = scene;
 state.camera = camera;
 state.time = Date.now();
 
-const clock = new THREE.Clock();
-
 function ticker() {
-    state.deltaTime = clock.getDelta();
-    state.time += state.deltaTime;
+    state.deltaTime = Date.now() - state.time;
+    state.time = Date.now();
  
     update.proc();
 	renderer.render(scene, camera);

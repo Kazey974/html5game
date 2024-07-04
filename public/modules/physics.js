@@ -1,13 +1,13 @@
-import Jolt from "../lib/jolt_v0.24.0.js";
-import settings from "./settings.js";
+import initJolt from "../lib/jolt_v0.24.0.js";
 import state from "./state.js";
 import update from "./update.js";
 
 const LAYER_NON_MOVING = 0;
 const LAYER_MOVING = 1;
+const PHYSICS_STEP = 10;
+var Jolt = await initJolt().then((init => init));
 
 export function initPhysics() {
-
     let objectFilter = new Jolt.ObjectLayerPairFilterTable(2);
     objectFilter.EnableCollision(LAYER_NON_MOVING, LAYER_MOVING);
     objectFilter.EnableCollision(LAYER_MOVING, LAYER_MOVING);
@@ -31,34 +31,21 @@ export function initPhysics() {
     let physicsSystem = jolt.GetPhysicsSystem();
     physicsSystem.SetGravity(new Jolt.Vec3(0, 0, -1));
 
-    state.physicsDeactivateQueue = [];
-    state.physicsDestroyQueue = [];
+    state.physicsRemoveQueue = [];
     state.physicsSystem = physicsSystem;
     state.physicsWorld = physicsSystem.GetBodyInterface();
     
     Jolt.destroy(joltSettings);
+    state.physicsTime = state.time;
 
     update.add(() => {
-        if (state.physicsDeactivateQueue.length) {
-            let id  = state.physicsDeactivateQueue.pop();
-            state.physicsWorld.DeactivateBody(id);
-            state.physicsDestroyQueue.push({
-                id: id,
-                time: state.time + 1
-            });
+        if (state.physicsRemoveQueue.length) {
+            let id  = state.physicsRemoveQueue.pop();
+            state.physicsWorld.RemoveBody(id);
         }
-
-        //FIX MEMORY ACCESS OUT OF BOUNDS
-        // if (state.physicsDestroyQueue.length
-        // && state.physicsDestroyQueue[0].time < state.time) {
-        //     let id = state.physicsDestroyQueue.shift();
-        //     state.physicsWorld.DestroyBody(id);
-        // }
         
-        jolt.Step(state.deltaTime, 1);
-    }, 'physicsWorld.step');
-
-
+        jolt.Step(state.deltaTime * 1/30, 1);
+    },"physicWorld");
 };
 
 export function createSphereBody(id, x, y, z, width, dynamic = false, ratio = 1) {
@@ -80,9 +67,9 @@ export function createSphereBody(id, x, y, z, width, dynamic = false, ratio = 1)
     let constraintSettings = new Jolt.SixDOFConstraintSettings();
     constraintSettings.MakeFreeAxis(Jolt.SixDOFConstraintSettings_EAxis_TranslationX);
     constraintSettings.MakeFreeAxis(Jolt.SixDOFConstraintSettings_EAxis_TranslationY);
-    constraintSettings.SetLimitedAxis(Jolt.SixDOFConstraintSettings_EAxis_TranslationZ, 0, 0);
-    constraintSettings.SetLimitedAxis(Jolt.SixDOFConstraintSettings_EAxis_RotationX, 0, 0);
-    constraintSettings.SetLimitedAxis(Jolt.SixDOFConstraintSettings_EAxis_RotationY, 0, 0);
+    constraintSettings.SetLimitedAxis(Jolt.SixDOFConstraintSettings_EAxis_TranslationZ, 0, -1);
+    constraintSettings.SetLimitedAxis(Jolt.SixDOFConstraintSettings_EAxis_RotationX, 0, -1);
+    constraintSettings.SetLimitedAxis(Jolt.SixDOFConstraintSettings_EAxis_RotationY, 0, -1);
     state.physicsSystem.AddConstraint(constraintSettings.Create(Jolt.Body.sFixedToWorld, body));
     
     state.physicsWorld.AddBody(body.GetID(), Jolt.EActivation_Activate);
@@ -94,6 +81,30 @@ export function createSphereBody(id, x, y, z, width, dynamic = false, ratio = 1)
 
     return body;
 };
+
+export function syncToServer(list) {
+    for (let index in list) {
+        let data = list[index];
+        let object = state.players[data.id];
+
+        let newPos = Vec3(
+            data.position.x,
+            data.position.y,
+            0
+        );
+        let newRot = Quat(
+            data.rotation.x,
+            data.rotation.y,
+            data.rotation.z,
+            data.rotation.w
+        )
+
+        state.physicsWorld.SetPositionAndRotationWhenChanged(object.rigidbody.GetID(), newPos, newRot)
+
+        Jolt.destroy(newPos);
+        Jolt.destroy(newRot);
+    }
+}
 
 export function Vec3(x, y, z) {
     return new Jolt.Vec3(x, y, z);

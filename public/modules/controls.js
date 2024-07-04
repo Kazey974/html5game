@@ -17,7 +17,9 @@ export default {
         window.onkeyup = (e) => { this.keysPressed.delete(e.code); };
 
         update.add(() => {
-            let magnitude = 10 * state.deltaTime;
+            let magnitude = 1 * state.deltaTime;
+            let velocityRatio = 1 / 2;
+            let rotationRatio = 1 / 60;
             let [up, down, left,right ] = [
                 settings.defaultControls.up.filter((k) => this.keysPressed.has(k)).length,
                 settings.defaultControls.down.filter((k) => this.keysPressed.has(k)).length,
@@ -27,18 +29,18 @@ export default {
             let inputs = [];
 
             if (up) {
-                this.object.setVelocity(0, magnitude * 100, 0, true);
+                this.object.setVelocity(0, magnitude * velocityRatio, 0, true);
                 inputs.push("up");
             } else if (down) {
-                this.object.setVelocity(0, -magnitude * 100, 0, true);
+                this.object.setVelocity(0, -magnitude * velocityRatio, 0, true);
                 inputs.push("down");
             }
 
             if (left) {
-                this.object.setRotation(magnitude * 0.5);
+                this.object.setRotation(magnitude * rotationRatio);
                 inputs.push("left");
             } else if (right) {
-                this.object.setRotation(-magnitude * 0.5);
+                this.object.setRotation(-magnitude * rotationRatio);
                 inputs.push("right");
             }
 

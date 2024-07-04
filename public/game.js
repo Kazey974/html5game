@@ -1,5 +1,5 @@
 import { BoxGeometry, Mesh, MeshNormalMaterial, Object3D } from "./lib/three_v0.166.0.min.js";
-import { initPhysics } from "./modules/physics.js";
+import { initPhysics, syncToServer } from "./modules/physics.js";
 import camera from "./modules/camera.js";
 import state from "./modules/state.js";
 import controls from "./modules/controls.js";
@@ -8,6 +8,7 @@ import prefabs from "./modules/prefabs.js";
 export default {
     init() {
         state.players = [];
+        state.serverInputs = [];
         state.socket = io();
 
         initPhysics();
@@ -30,6 +31,7 @@ export default {
         state.socket.on("initPlayer", (data) => {
             let ship = prefabs.ship(data.id, data.position, data.color);
             state.players[data.id] = ship;
+            state.physicsTime = data.time;
 
             if (state.socket.id === data.id) {
                 controls.setBody(ship);
@@ -46,6 +48,10 @@ export default {
                 }
             }
         })
+
+        state.socket.on("physics", (data) => {
+            syncToServer(data.list);
+        });
 
         state.socket.on("removePlayer", (id) => {
             if (state.players[id] !== undefined) {
