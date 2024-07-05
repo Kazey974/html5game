@@ -30,9 +30,12 @@ export const gameServer = async (server) => {
     setInterval(() => {
         state.deltaTime = Date.now() - state.time;
         state.time = Date.now();
+
+        if (!(Date.now % 1000)) {
+            console.log(Date() + " - Current players : " + Object.keys(state.players));
+        }
         
         if (state.jolt && Object.keys(state.players).length) {
-            console.log("Stepping");
             updatePlayers();
             state.jolt.Step(state.deltaTime * 1/30, 1);
         }
