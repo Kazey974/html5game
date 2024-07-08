@@ -55,11 +55,12 @@ export const gameServer = async (server) => {
                     player.setRotation(-magnitude * rotationRatio);
                 }
             }
+            
+            updatePlayers();
         }
         
         if (state.jolt && Object.keys(state.players).length) {
-            updatePlayers();
-            state.jolt.Step(state.deltaTime * 1/30, 1);
+            state.jolt.Step(state.deltaTime * 1/60, 1);
         }
     })
 

@@ -36,7 +36,6 @@ export function initPhysics() {
     state.physicsWorld = physicsSystem.GetBodyInterface();
     
     Jolt.destroy(joltSettings);
-    state.physicsTime = state.time;
 
     update.add(() => {
         if (state.physicsRemoveQueue.length) {
@@ -44,7 +43,7 @@ export function initPhysics() {
             state.physicsWorld.RemoveBody(id);
         }
         
-        jolt.Step(state.deltaTime * 1/30, 1);
+        jolt.Step(state.deltaTime * 1/60, 1);
     },"physicWorld");
 };
 

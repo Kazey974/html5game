@@ -31,7 +31,6 @@ export default {
         state.socket.on("initPlayer", (data) => {
             let ship = prefabs.ship(data.id, data.position, data.color);
             state.players[data.id] = ship;
-            state.physicsTime = data.time;
 
             if (state.socket.id === data.id) {
                 controls.setBody(ship);
