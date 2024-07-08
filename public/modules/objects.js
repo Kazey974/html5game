@@ -90,6 +90,18 @@ export class Gameobject {
         return this;
     }
 
+    setAngularVelocity(modifier) {
+        if (this.rigidbody) {
+            let vec3 = Vec3(0, 0, modifier);
+
+            state.physicsWorld.SetAngularVelocity(this.rigidbody.GetID(),vec3);
+
+            destroy(vec3);
+        }
+
+        return this;
+    }
+
     setRotation(modifier = 0) {
         if (this.rigidbody) {
             let currentRotation = this.rigidbody.GetRotation();
@@ -97,7 +109,7 @@ export class Gameobject {
             if (temp < (-Math.PI / 2) || temp > (Math.PI / 2)) {
                 temp = -temp;
             }
-            let newRotation = new Quat(
+            let newRotation = Quat(
                 currentRotation.GetX(),
                 currentRotation.GetY(),
                 Math.sin(temp),

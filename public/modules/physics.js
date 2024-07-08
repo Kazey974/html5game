@@ -4,7 +4,6 @@ import update from "./update.js";
 
 const LAYER_NON_MOVING = 0;
 const LAYER_MOVING = 1;
-const PHYSICS_STEP = 10;
 var Jolt = await initJolt().then((init => init));
 
 export function initPhysics() {
@@ -42,8 +41,8 @@ export function initPhysics() {
             let id  = state.physicsRemoveQueue.pop();
             state.physicsWorld.RemoveBody(id);
         }
-        
-        jolt.Step(state.deltaTime * 1/60, 1);
+
+            jolt.Step(state.deltaTime / 30, 1);
     },"physicWorld");
 };
 
@@ -61,14 +60,11 @@ export function createSphereBody(id, x, y, z, width, dynamic = false, ratio = 1)
     let body = state.physicsWorld.CreateBody(creationSettings);
     // Wait for next version of jolt.wasm-compat.js
     // let body = state.physicsWorld.CreateBodyWithID(id, creationSettings);
-    body.SetRestitution(0);
 
     let constraintSettings = new Jolt.SixDOFConstraintSettings();
-    constraintSettings.MakeFreeAxis(Jolt.SixDOFConstraintSettings_EAxis_TranslationX);
-    constraintSettings.MakeFreeAxis(Jolt.SixDOFConstraintSettings_EAxis_TranslationY);
-    constraintSettings.SetLimitedAxis(Jolt.SixDOFConstraintSettings_EAxis_TranslationZ, 0, -1);
-    constraintSettings.SetLimitedAxis(Jolt.SixDOFConstraintSettings_EAxis_RotationX, 0, -1);
-    constraintSettings.SetLimitedAxis(Jolt.SixDOFConstraintSettings_EAxis_RotationY, 0, -1);
+    constraintSettings.MakeFixedAxis(Jolt.SixDOFConstraintSettings_EAxis_TranslationZ);
+    constraintSettings.MakeFixedAxis(Jolt.SixDOFConstraintSettings_EAxis_RotationX);
+    constraintSettings.MakeFixedAxis(Jolt.SixDOFConstraintSettings_EAxis_RotationY);
     state.physicsSystem.AddConstraint(constraintSettings.Create(Jolt.Body.sFixedToWorld, body));
     
     state.physicsWorld.AddBody(body.GetID(), Jolt.EActivation_Activate);

@@ -18,6 +18,8 @@ export default {
         window.onkeyup = (e) => { this.keysPressed.delete(e.code); };
         state.currentInputs = {};
 
+        update.nextInterval.set(10);
+
         update.add(() => {
             let magnitude = 1;
             let velocityRatio = 1 / 2;
@@ -30,7 +32,8 @@ export default {
             ];
             let inputDiff = [];
 
-            if (!(Date.now() % 10)) {
+            if (Date.now() >= update.nextInterval[10]) {
+                update.nextInterval.increment(10);
                 if (up) {
                     this.object.setVelocity(0, magnitude * velocityRatio, 0, true);
                     if (!("up" in state.currentInputs)) {

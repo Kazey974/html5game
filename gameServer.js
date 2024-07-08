@@ -3,7 +3,6 @@ import { Gameobject } from "./objectServer.js";
 import { initPhysics, jsify } from "./physicsServer.js";
 
 export const state = {};
-const PHYSICS_STEP = 10;
 
 export const gameServer = async (server) => {
     console.log("//SERVER START");
@@ -27,16 +26,30 @@ export const gameServer = async (server) => {
             getInputs(socket, inputs);
         });
     });
+
+    const nextInterval = {
+        set(int) {
+            this[int] = Math.floor(Date.now() / int) * int;
+        },
+        increment(int) {
+            this[int] = Math.floor((this[int] + int) / int) * int;
+        }
+    };
+
+    nextInterval.set(10);
+    nextInterval.set(10000);
     
     setInterval(() => {
         state.deltaTime = Date.now() - state.time;
         state.time = Date.now();
 
-        if (!(Date.now() % 1000)) {
+        if (Date.now() >= nextInterval[10000]) {
+            nextInterval.increment(10000);
             console.log(new Date().toISOString() + " - Current players :\n" + Object.keys(state.players));
         }
 
-        if (!(Date.now() % 10)) {
+        if (Date.now() >= nextInterval[10] && state.deltaTime) {
+            nextInterval.increment(10);
             for (let id in state.inputs) {
                 let magnitude = 1;
                 let velocityRatio = 1 / 2;
@@ -55,12 +68,15 @@ export const gameServer = async (server) => {
                     player.setRotation(-magnitude * rotationRatio);
                 }
             }
-            
+
+
             updatePlayers();
         }
         
         if (state.jolt && Object.keys(state.players).length) {
-            state.jolt.Step(state.deltaTime * 1/60, 1);
+            if (state.deltaTime) {
+                state.jolt.Step(state.deltaTime / 30, 1);
+            }
         }
     })
 

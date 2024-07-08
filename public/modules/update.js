@@ -1,5 +1,13 @@
 export default {
     list: [],
+    nextInterval: {
+        set(int) {
+            this[int] = Math.floor(Date.now() / int) * int;
+        },
+        increment(int) {
+            this[int] = Math.floor((this[int] + int) / int) * int;
+        }
+    },
     proc() {
         for(let key in this.list) {
             if (typeof this.list[key] === "function") {

@@ -53,12 +53,11 @@ export function createSphereBody(id, x, y, z, width, dynamic = false, ratio = 1)
     let body = state.physicsWorld.CreateBody(creationSettings);
     // Wait for next version of jolt.wasm-compat.js
     // let body = state.physicsWorld.CreateBodyWithID(id, creationSettings);
-    body.SetRestitution(0);
 
     let constraintSettings = new Jolt.SixDOFConstraintSettings();
-    constraintSettings.SetLimitedAxis(Jolt.SixDOFConstraintSettings_EAxis_TranslationZ, 0, -1);
-    constraintSettings.SetLimitedAxis(Jolt.SixDOFConstraintSettings_EAxis_RotationX, 0, -1);
-    constraintSettings.SetLimitedAxis(Jolt.SixDOFConstraintSettings_EAxis_RotationY, 0, -1);
+    constraintSettings.MakeFixedAxis(Jolt.SixDOFConstraintSettings_EAxis_TranslationZ);
+    constraintSettings.MakeFixedAxis(Jolt.SixDOFConstraintSettings_EAxis_RotationX);
+    constraintSettings.MakeFixedAxis(Jolt.SixDOFConstraintSettings_EAxis_RotationY);
     state.physicsSystem.AddConstraint(constraintSettings.Create(Jolt.Body.sFixedToWorld, body));
     
     state.physicsWorld.AddBody(body.GetID(), Jolt.EActivation_Activate);
