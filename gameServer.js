@@ -9,6 +9,7 @@ export const gameServer = async (server) => {
     console.log("//SERVER START");
     const io = new Server(server);
     state.players = {};
+    state.inputs = {};
     state.time = Date.now();
     state.deltaTime = 0;
     await initPhysics();
@@ -31,8 +32,29 @@ export const gameServer = async (server) => {
         state.deltaTime = Date.now() - state.time;
         state.time = Date.now();
 
-        if (!(Date.now % 1000)) {
-            console.log(Date() + " - Current players : " + Object.keys(state.players));
+        if (!(Date.now() % 1000)) {
+            console.log(new Date().toISOString() + " - Current players :\n" + Object.keys(state.players));
+        }
+
+        if (!(Date.now() % 10)) {
+            for (let id in state.inputs) {
+                let magnitude = 1;
+                let velocityRatio = 1 / 2;
+                let rotationRatio = 1 / 20;
+                let player = state.players[id].object;
+
+                if ("up" in state.inputs[id]) {
+                    player.setVelocity(0, magnitude * velocityRatio, 0, true);
+                } else if ("down" in state.inputs[id]) {
+                    player.setVelocity(0, -magnitude * velocityRatio, 0, true);
+                }
+        
+                if ("left" in state.inputs[id]) {
+                    player.setRotation(magnitude * rotationRatio);
+                } else if ("right" in state.inputs[id]) {
+                    player.setRotation(-magnitude * rotationRatio);
+                }
+            }
         }
         
         if (state.jolt && Object.keys(state.players).length) {
@@ -95,22 +117,18 @@ export const gameServer = async (server) => {
     }
 
     function getInputs(socket, inputs) {
-        let magnitude = 1 * state.deltaTime;
-        let velocityRatio = 1 / 2;
-        let rotationRatio = 1 / 60;
-        let player = state.players[socket.id].object;
 
-        if (inputs.includes("up")) {
-            player.setVelocity(0, magnitude * velocityRatio, 0, true);
-        } else if (inputs.includes("down")) {
-            player.setVelocity(0, -magnitude * velocityRatio, 0, true);
+        if (!state.inputs[socket.id]) {
+            state.inputs[socket.id] = {};
         }
 
-        if (inputs.includes("left")) {
-            player.setRotation(magnitude * rotationRatio);
-        } else if (inputs.includes("right")) {
-            player.setRotation(-magnitude * rotationRatio);
-        }
+        inputs.forEach(i => {
+            if (i.includes("pressed")) {
+                state.inputs[socket.id][i.substr(7).toLowerCase()] = true;
+            } else if (i.includes("released")) {
+                delete state.inputs[socket.id][i.substr(8).toLowerCase()];
+            }
+        });
     }
 
     function updatePlayers() {
@@ -142,6 +160,7 @@ export const gameServer = async (server) => {
         console.log("IO - user disconnected : " + socket.id);
         io.emit("removePlayer", socket.id);
         state.players[socket.id].object.remove();
+        delete state.inputs[socket.id];
         delete state.players[socket.id];
     }
 };
