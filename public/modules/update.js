@@ -1,12 +1,16 @@
 export default {
     list: [],
     nextInterval: {
-        set(int) {
-            this[int] = Math.floor(Date.now() / int) * int;
+        get(int) {
+            this[int] ??= Math.floor(Date.now() / int) * int;
+
+            if (Date.now() >= this[int]) {
+                this[int] = Math.floor((Date.now() + int) / int) * int;
+                return true;
+            }
+
+            return false;
         },
-        increment(int) {
-            this[int] = Math.floor((this[int] + int) / int) * int;
-        }
     },
     proc() {
         for(let key in this.list) {

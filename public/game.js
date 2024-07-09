@@ -4,6 +4,7 @@ import camera from "./modules/camera.js";
 import state from "./modules/state.js";
 import controls from "./modules/controls.js";
 import prefabs from "./modules/prefabs.js";
+import update from "./modules/update.js";
 
 export default {
     init() {
@@ -33,7 +34,7 @@ export default {
             state.players[data.id] = ship;
 
             if (state.socket.id === data.id) {
-                controls.setBody(ship);
+                controls.init();
                 camera.follow(ship.object);
             }
         })
@@ -48,7 +49,7 @@ export default {
             }
         })
 
-        state.socket.on("physics", (data) => {
+        state.socket.on("sync", (data) => {
             syncToServer(data.list);
         });
 
@@ -57,5 +58,11 @@ export default {
                 state.players[id].remove();
             }
         });
+
+        update.add(() => {
+            for(let id in state.players) {
+                state.players[id].input(id);
+            }
+        }, "applyInputs");
     }
 }

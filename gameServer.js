@@ -28,28 +28,28 @@ export const gameServer = async (server) => {
     });
 
     const nextInterval = {
-        set(int) {
-            this[int] = Math.floor(Date.now() / int) * int;
-        },
-        increment(int) {
-            this[int] = Math.floor((this[int] + int) / int) * int;
-        }
-    };
+        get(int) {
+            this[int] ??= Math.floor(Date.now() / int) * int;
 
-    nextInterval.set(10);
-    nextInterval.set(10000);
+            if (Date.now() >= this[int]) {
+                this[int] = Math.floor((Date.now() + int) / int) * int;
+                return true;
+            }
+
+            return false;
+        },
+    };
     
     setInterval(() => {
         state.deltaTime = Date.now() - state.time;
         state.time = Date.now();
 
-        if (Date.now() >= nextInterval[10000]) {
-            nextInterval.increment(10000);
-            console.log(new Date().toISOString() + " - Current players :\n" + Object.keys(state.players));
+        if (nextInterval.get(10000)) {
+            console.log(new Date().toISOString() + " - Current players : " + Object.keys(state.players).length
+            + "\n" + Object.keys(state.players));
         }
 
-        if (Date.now() >= nextInterval[10] && state.deltaTime) {
-            nextInterval.increment(10);
+        if (nextInterval.get(10) && state.deltaTime) {
             for (let id in state.inputs) {
                 let magnitude = 1;
                 let velocityRatio = 1 / 2;
@@ -149,11 +149,11 @@ export const gameServer = async (server) => {
     }
 
     function updatePlayers() {
-        let physicState = {};
+        let serverState = {};
         let list = [];
-        physicState = {};
-        physicState.list = {};
-        physicState.time = Math.floor(state.time / 100) * 100;
+        serverState = {};
+        serverState.list = {};
+        serverState.time = Math.floor(state.time / 100) * 100;
 
         for(let id in state.players) {
             let rigidbody = state.players[id].object.rigidbody;
@@ -163,14 +163,15 @@ export const gameServer = async (server) => {
                 rotation: jsify(rigidbody.GetRotation(), "Quat"),
                 velocity: jsify(rigidbody.GetLinearVelocity(), "Vec3"),
                 angular: jsify(rigidbody.GetAngularVelocity(), "Vec3"),
+                currentInputs: state.inputs[id] ?? {}
             };
 
             list.push(playerState);
         }
 
-        Object.assign(physicState.list, list);
+        Object.assign(serverState.list, list);
         
-        io.emit("physics", physicState);
+        io.emit("sync", serverState);
     }
 
     function deletePlayer(socket) {

@@ -79,6 +79,7 @@ export function createSphereBody(id, x, y, z, width, dynamic = false, ratio = 1)
 
 export function syncToServer(list) {
     for (let index in list) {
+        //PHYSICS
         let data = list[index];
         let object = state.players[data.id];
 
@@ -98,6 +99,11 @@ export function syncToServer(list) {
 
         Jolt.destroy(newPos);
         Jolt.destroy(newRot);
+
+        //INPUTS
+        if (data.id !== state.socket.id) {
+            state.players[data.id].currentInputs = data.currentInputs;
+        }
     }
 }
 

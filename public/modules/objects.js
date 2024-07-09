@@ -2,8 +2,8 @@ import { Quat, Vec3, createSphereBody, destroy } from "./physics.js";
 import { Euler, Object3D, Vector3 } from "../lib/three_v0.166.0.min.js";
 import update from "./update.js"
 import state from "./state.js";
-
-const MOVING = false;
+import controls from "./controls.js";
+import settings from "./settings.js";
 
 export class Gameobject {
     constructor(name, id, x = 0, y = 0, z = 0) {
@@ -14,7 +14,89 @@ export class Gameobject {
         this.object.position.setY(y);
         this.object.position.setZ(z);
         this.shouldDestroy = [];
+        this.currentInputs = {};
         
+        return this;
+    }
+
+    input(id) {
+        if (this.rigidbody) {
+            let magnitude = 1;
+            let velocityRatio = 1 / 2;
+            let rotationRatio = 1 / 20;
+            let local = id === state.socket.id;
+            let up, down, left, right;
+
+            if (local) {
+                [up, down, left,right] = [
+                    settings.defaultControls.up.filter((k) => controls.keysPressed.has(k)).length,
+                    settings.defaultControls.down.filter((k) => controls.keysPressed.has(k)).length,
+                    settings.defaultControls.left.filter((k) => controls.keysPressed.has(k)).length,
+                    settings.defaultControls.right.filter((k) => controls.keysPressed.has(k)).length
+                ];
+            } else {
+                [up, down, left, right] = [
+                    "up" in state.players[id].currentInputs,
+                    "down" in state.players[id].currentInputs,
+                    "left" in state.players[id].currentInputs,
+                    "right" in state.players[id].currentInputs
+                ];
+            }
+
+            if (up) {
+                this.setVelocity(0, magnitude * velocityRatio, 0, true);
+            } else if (down) {
+                this.setVelocity(0, -magnitude * velocityRatio, 0, true);
+            }
+
+            if (left) {
+                this.setRotation(magnitude * rotationRatio);
+            } else if (right) {
+                this.setRotation(-magnitude * rotationRatio);
+            }
+
+            if (local) {
+                let inputDiff = [];
+
+                if (up && !("up" in this.currentInputs)) {
+                    this.currentInputs["up"] = true;
+                    inputDiff.push("pressedUp");
+                } else if (down && !("down" in this.currentInputs)) {
+                    this.currentInputs["down"] = true;
+                    inputDiff.push("pressedDown");
+                }
+    
+                if (left && !("left" in this.currentInputs)) {
+                    this.currentInputs["left"] = true;
+                    inputDiff.push("pressedLeft");
+                } else if (right && !("right" in this.currentInputs)) {
+                    this.currentInputs["right"] = true;
+                    inputDiff.push("pressedRight");
+                }
+    
+                if (!up && "up" in this.currentInputs) {
+                    delete this.currentInputs["up"];
+                    inputDiff.push("releasedUp");
+                }
+                if (!down && "down" in this.currentInputs) {
+                    delete this.currentInputs["down"];
+                    inputDiff.push("releasedDown");
+                }
+                if (!left && "left" in this.currentInputs) {
+                    delete this.currentInputs["left"];
+                    inputDiff.push("releasedLeft");
+                }
+                if (!right && "right" in this.currentInputs) {
+                    delete this.currentInputs["right"];
+                    inputDiff.push("releasedRight");
+                }
+    
+                if (inputDiff.length) {
+                    state.socket.emit('inputs', inputDiff);
+                }
+            }
+        }
+
         return this;
     }
 
