@@ -1,11 +1,11 @@
 export default {
     list: [],
     nextInterval: {
-        get(int) {
-            this[int] ??= Math.floor(Date.now() / int) * int;
+        get(int, id = int) {
+            this[id] ??= Math.floor(Date.now() / int) * int;
 
-            if (Date.now() >= this[int]) {
-                this[int] = Math.floor((Date.now() + int) / int) * int;
+            if (Date.now() >= this[id]) {
+                this[id] = Math.floor((Date.now() + int) / int) * int;
                 return true;
             }
 

@@ -77,36 +77,6 @@ export function createSphereBody(id, x, y, z, width, dynamic = false, ratio = 1)
     return body;
 };
 
-export function syncToServer(list) {
-    for (let index in list) {
-        //PHYSICS
-        let data = list[index];
-        let object = state.players[data.id];
-
-        let newPos = Vec3(
-            data.position.x,
-            data.position.y,
-            0
-        );
-        let newRot = Quat(
-            data.rotation.x,
-            data.rotation.y,
-            data.rotation.z,
-            data.rotation.w
-        )
-
-        state.physicsWorld.SetPositionAndRotationWhenChanged(object.rigidbody.GetID(), newPos, newRot)
-
-        Jolt.destroy(newPos);
-        Jolt.destroy(newRot);
-
-        //INPUTS
-        if (data.id !== state.socket.id) {
-            state.players[data.id].currentInputs = data.currentInputs;
-        }
-    }
-}
-
 export function Vec3(x, y, z) {
     return new Jolt.Vec3(x, y, z);
 }
@@ -115,6 +85,26 @@ export function Quat(x, y, z, w) {
     return new Jolt.Quat(x, y, z, w);
 }
 
-export function destroy(object) {
-    Jolt.destroy(object);
+export function jsify(object, type) {
+    switch (type) {
+        case "Vec3":
+            return {
+                x: object.GetX(),
+                y: object.GetY(),
+                z: object.GetZ(),
+            };
+        case "Quat":
+            return {
+                x: object.GetX(),
+                y: object.GetY(),
+                z: object.GetZ(),
+                w: object.GetW(),
+            }
+    }
+}
+
+export function destroy(...objects) {
+    for(let object of objects) {
+        Jolt.destroy(object);
+    }
 }

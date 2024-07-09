@@ -11,6 +11,20 @@ export const gameServer = async (server) => {
     state.inputs = {};
     state.time = Date.now();
     state.deltaTime = 0;
+
+    const nextInterval = {
+        get(int) {
+            this[int] ??= Math.floor(Date.now() / int) * int;
+
+            if (Date.now() >= this[int]) {
+                this[int] = Math.floor((Date.now() + int) / int) * int;
+                return true;
+            }
+
+            return false;
+        },
+    };
+
     await initPhysics();
 
     io.on("connection", (socket) => {
@@ -26,19 +40,6 @@ export const gameServer = async (server) => {
             getInputs(socket, inputs);
         });
     });
-
-    const nextInterval = {
-        get(int) {
-            this[int] ??= Math.floor(Date.now() / int) * int;
-
-            if (Date.now() >= this[int]) {
-                this[int] = Math.floor((Date.now() + int) / int) * int;
-                return true;
-            }
-
-            return false;
-        },
-    };
     
     setInterval(() => {
         state.deltaTime = Date.now() - state.time;
@@ -68,7 +69,6 @@ export const gameServer = async (server) => {
                     player.setRotation(-magnitude * rotationRatio);
                 }
             }
-
 
             updatePlayers();
         }
@@ -159,6 +159,7 @@ export const gameServer = async (server) => {
             let rigidbody = state.players[id].object.rigidbody;
             let playerState = {
                 id: id,
+                time: Date.now(),
                 position: jsify(rigidbody.GetPosition(), "Vec3"),
                 rotation: jsify(rigidbody.GetRotation(), "Quat"),
                 velocity: jsify(rigidbody.GetLinearVelocity(), "Vec3"),
@@ -171,7 +172,17 @@ export const gameServer = async (server) => {
 
         Object.assign(serverState.list, list);
         
-        io.emit("sync", serverState);
+        let start = Date.now();
+        io.timeout(1000).emit("sync", serverState, (err, responses) => {
+            if (err) {
+                //Packet error
+            } else {
+                for(let response of responses) {
+                    let latency = Date.now() - start;
+                    state.players[response.id].latency = latency;
+                }
+            }
+        });
     }
 
     function deletePlayer(socket) {

@@ -78,8 +78,10 @@ export function Quat(x, y, z, w) {
     return new Jolt.Quat(x, y, z, w);
 }
 
-export function destroy(object) {
-    Jolt.destroy(object);
+export function destroy(...objects) {
+    for (let object of objects) {
+        Jolt.destroy(object);
+    }
 }
 
 export function jsify(object, type) {

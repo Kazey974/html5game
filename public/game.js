@@ -1,19 +1,21 @@
 import { BoxGeometry, Mesh, MeshNormalMaterial, Object3D } from "./lib/three_v0.166.0.min.js";
-import { initPhysics, syncToServer } from "./modules/physics.js";
+import { initPhysics } from "./modules/physics.js";
 import camera from "./modules/camera.js";
 import state from "./modules/state.js";
 import controls from "./modules/controls.js";
-import prefabs from "./modules/prefabs.js";
 import update from "./modules/update.js";
+import networking from "./modules/networking.js";
 
 export default {
     init() {
         state.players = [];
         state.serverInputs = [];
-        state.socket = io();
 
-        initPhysics();
+        networking.init();
+        controls.init();
         camera.init()
+        
+        initPhysics();
 
         const object = new Object3D();
         const geometry = new BoxGeometry(1, 1, 1);
@@ -25,39 +27,6 @@ export default {
         object.position.setZ(-5);
 
         state.level.add(object);
-        
-        state.socket.on("connect", () => {
-        });
-
-        state.socket.on("initPlayer", (data) => {
-            let ship = prefabs.ship(data.id, data.position, data.color);
-            state.players[data.id] = ship;
-
-            if (state.socket.id === data.id) {
-                controls.init();
-                camera.follow(ship.object);
-            }
-        })
-
-        state.socket.on("initObjects", (data) => {
-            for(let key in data) {
-                if (key !== state.socket.id) {
-                    let object = data[key];
-                    let ship = prefabs.ship(object.id, object.position, object.color);
-                    state.players[object.id] = ship;
-                }
-            }
-        })
-
-        state.socket.on("sync", (data) => {
-            syncToServer(data.list);
-        });
-
-        state.socket.on("removePlayer", (id) => {
-            if (state.players[id] !== undefined) {
-                state.players[id].remove();
-            }
-        });
 
         update.add(() => {
             for(let id in state.players) {
