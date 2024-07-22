@@ -172,17 +172,7 @@ export const gameServer = async (server) => {
 
         Object.assign(serverState.list, list);
         
-        let start = Date.now();
-        io.timeout(1000).emit("sync", serverState, (err, responses) => {
-            if (err) {
-                //Packet error
-            } else {
-                for(let response of responses) {
-                    let latency = Date.now() - start;
-                    state.players[response.id].latency = latency;
-                }
-            }
-        });
+        io.timeout(5000).emit("sync", serverState);
     }
 
     function deletePlayer(socket) {

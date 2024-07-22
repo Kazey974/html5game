@@ -3,20 +3,17 @@ import camera from "./camera.js";
 import prefabs from "./prefabs.js";
 import state from "./state.js";
 import update from "./update.js";
+import controls from "./controls.js";
 
 export default {
     init() {
         state.socket = io();
+        state.networking = {};
+        state.networking.players = {};
 
         state.socket.on("connect", () => {
-
+            this.startInterpolating();
         });
-
-        setInterval(() => {
-            const start = Date.now();
-
-            state.socket.emit("ping", Date.now() - start)
-        }, 1000)
 
         state.socket.on("initPlayer", (data) => {
             let ship = prefabs.ship(data.id, data.position, data.color);
@@ -37,49 +34,86 @@ export default {
             }
         })
 
-        state.socket.on("sync", (data, callback) => {
-            console.log("Sync success");
+        state.socket.on("sync", (data) => {
             this.syncToServer(data.list);
-
-            if (typeof callback === "function") {
-                callback({
-                    id: state.socket.id
-                });
-            }
         });
 
         state.socket.on("removePlayer", (id) => {
             if (state.players[id] !== undefined) {
                 state.players[id].remove();
             }
+
+            delete state.networking.players[id];
         });
+    },
+
+    startInterpolating() {
+        setInterval(() => {
+            if (state.networking.players) {
+                for (let id in state.networking.players) {
+                    let data = state.networking.players[id];
+                    let player = state.players[id];
+            
+                    if (!player) {
+                        continue;
+                    }
+                    
+                    if (state.physicsWorld) {
+                        let position = jsify(player.rigidbody.GetPosition(), "Vec3")
+                        let rotation = jsify(player.rigidbody.GetRotation(), "Quat")
+                        let velocity = jsify(player.rigidbody.GetLinearVelocity(), "Vec3")
+                        let angular = jsify(player.rigidbody.GetAngularVelocity(), "Vec3")
+
+                        let xDifference = Math.abs(position.x - data.position.x);
+                        let yDifference = Math.abs(position.y - data.position.y);
+
+                        let interpolated = {
+                            position: data.position,
+                            rotation: data.rotation,
+                            velocity: data.velocity,
+                            angular: data.angular
+                        };
+
+                        if (xDifference <= 2 && yDifference <= 2) {
+                            console.log("Position matches for " + id);
+                            delete state.networking.players[id];
+                            continue;
+                        } else if (xDifference < 20 && xDifference < 20) {
+                            console.log("Interpolate " + id);
+                            interpolated = this.interpolate(
+                                {
+                                    position: position,
+                                    rotation: rotation,
+                                    velocity: velocity,
+                                    angular: angular
+                                }, {
+                                    position: data.position,
+                                    rotation: data.rotation,
+                                    velocity: data.velocity,
+                                    angular: data.angular
+                                }
+                            )
+                        } else {
+                            console.log("Teleport " + id);
+                        }
+
+                        this.setPhysicsPosition(
+                            player,
+                            interpolated.position,
+                            interpolated.rotation,
+                            interpolated.velocity,
+                            interpolated.angular
+                        );
+                    }
+                }
+            }
+        }, 5);
     },
 
     syncToServer(list) {
         for (let index in list) {
             let data = list[index];
-            let player = state.players[data.id];
-            
-            //PHYSICS
-            if (state.physicsWorld) {
-                let interpolated = this.interpolate(
-                    {
-                        position: jsify(player.rigidbody.GetPosition(), "Vec3"),
-                        rotation: jsify(player.rigidbody.GetRotation(), "Quat"),
-                    }, {
-                        position: data.position,
-                        rotation: data.rotation,
-                    }
-                )
-
-                this.setPhysicsPosition(
-                    player,
-                    interpolated.position,
-                    interpolated.rotation,
-                    data.velocity,
-                    data.angular
-                );
-            }
+            state.networking.players[data.id] = data;
 
             //INPUTS
             if (data.id !== state.socket.id) {
@@ -144,8 +178,9 @@ export default {
         for (let key in A) {
             out[key] = {};
             for (let dimension in A[key]) {
-                let value = (A[key][dimension] + B[key][dimension]) / 2;
-                out[key][dimension] = value;
+                let diff = A[key][dimension] - B[key][dimension];
+                
+                out[key][dimension] = B[key][dimension] + (diff / 2);
             }
         }
 
