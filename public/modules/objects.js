@@ -1,4 +1,4 @@
-import { Quat, Vec3, createSphereBody, destroy } from "./physics.js";
+import { Quat, Vec3, createSphereBody, destroy, jsify } from "./physics.js";
 import { Euler, Object3D, Vector3 } from "../lib/three_v0.166.0.min.js";
 import update from "./update.js"
 import state from "./state.js";
@@ -15,6 +15,29 @@ export class Gameobject {
         this.object.position.setZ(z);
         this.shouldDestroy = [];
         this.currentInputs = {};
+        this.snapshots = {
+            list: {},
+            set() {
+                if (!state.players[state.socket.id].rigidbody) {
+                    return;
+                }
+
+                let timestamp = Math.floor(Date.now() / 100);
+                if (!(timestamp in this.list)) {
+                    this.list[timestamp] = {
+                        position: jsify(state.players[state.socket.id].rigidbody.GetPosition(), "Vec3"),
+                        rotation: jsify(state.players[state.socket.id].rigidbody.GetRotation(), "Quat"),
+                        velocity: jsify(state.players[state.socket.id].rigidbody.GetLinearVelocity(), "Vec3"),
+                        angular: jsify(state.players[state.socket.id].rigidbody.GetAngularVelocity(), "Vec3")
+                    }
+                }
+                
+                if (Object.keys(this.list).length > 10) {
+                    let lowest = Math.min(...Object.keys(this.list));
+                    delete this.list[lowest];
+                }
+            }
+        }
         
         return this;
     }
@@ -130,6 +153,10 @@ export class Gameobject {
             let physicsRotation = this.rigidbody.GetRotation().GetEulerAngles();
             let euler = new Euler(physicsRotation.GetX(), physicsRotation.GetY(), physicsRotation.GetZ());
             this.object.setRotationFromEuler(euler);
+
+            if (this.id === state.socket.id) {
+                this.snapshots.set();
+            }
         }, id);
 
         this.shouldDestroy.push(id);

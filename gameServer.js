@@ -159,7 +159,7 @@ export const gameServer = async (server) => {
             let rigidbody = state.players[id].object.rigidbody;
             let playerState = {
                 id: id,
-                time: Date.now(),
+                timestamp: Math.floor(Date.now() / 100),
                 position: jsify(rigidbody.GetPosition(), "Vec3"),
                 rotation: jsify(rigidbody.GetRotation(), "Quat"),
                 velocity: jsify(rigidbody.GetLinearVelocity(), "Vec3"),
