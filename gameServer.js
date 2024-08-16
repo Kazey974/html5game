@@ -1,16 +1,19 @@
 import { Server } from "socket.io";
 import { Gameobject } from "./objectServer.js";
-import { initPhysics, jsify } from "./physicsServer.js";
+import { initPhysics } from "./physicsServer.js";
+import { jsify } from "./public/utils.js";
+import settings from "./public/modules/settings.js";
 
-export const state = {};
+export const state = {
+    players: {},
+    inputs: {},
+    time: Date.now(),
+    deltaTime: 0
+};
 
 export const gameServer = async (server) => {
     console.log("//SERVER START");
     const io = new Server(server);
-    state.players = {};
-    state.inputs = {};
-    state.time = Date.now();
-    state.deltaTime = 0;
 
     const nextInterval = {
         get(int) {
@@ -52,9 +55,9 @@ export const gameServer = async (server) => {
 
         if (nextInterval.get(10) && state.deltaTime) {
             for (let id in state.inputs) {
-                let magnitude = 1;
-                let velocityRatio = 1 / 2;
-                let rotationRatio = 1 / 20;
+                let magnitude = settings.physics.magnitude;
+                let velocityRatio = settings.physics.velocityRatio;
+                let rotationRatio = settings.physics.rotationRatio;
                 let player = state.players[id].object;
 
                 if ("up" in state.inputs[id]) {
@@ -81,6 +84,7 @@ export const gameServer = async (server) => {
     })
 
     function initPlayer(socket) {
+        state.inputs[socket.id] = {};
         let position = {x: Math.random() * 3, y: Math.random() * 3,  z: 0};
         let isValid = false;
 
@@ -109,7 +113,7 @@ export const gameServer = async (server) => {
             color: Math.random() * 0xffffff
         };
     
-        io.emit("initPlayer", {
+        io.emit("playerJoined", {
             id: newPlayer.id,
             position: newPlayer.position,
             color: newPlayer.color,
@@ -127,18 +131,13 @@ export const gameServer = async (server) => {
             });
         }
         
-        io.to(socket.id).emit("initObjects", existingObjects);
+        io.to(socket.id).emit("initOtherObjects", existingObjects);
     
         state.players[socket.id] = {};
         Object.assign(state.players[socket.id], newPlayer);
     }
 
     function getInputs(socket, inputs) {
-
-        if (!state.inputs[socket.id]) {
-            state.inputs[socket.id] = {};
-        }
-
         inputs.forEach(i => {
             if (i.includes("pressed")) {
                 state.inputs[socket.id][i.substr(7).toLowerCase()] = true;
@@ -149,11 +148,12 @@ export const gameServer = async (server) => {
     }
 
     function updatePlayers() {
-        let serverState = {};
+        let serverState = {
+            list: {},
+            time: Math.floor(state.time / 100) * 100
+        };
+
         let list = [];
-        serverState = {};
-        serverState.list = {};
-        serverState.time = Math.floor(state.time / 100) * 100;
 
         for(let id in state.players) {
             let rigidbody = state.players[id].object.rigidbody;

@@ -1,63 +1,46 @@
-import { Quat, Vec3, createSphereBody, destroy, jsify } from "./physics.js";
+import { Quat, Vec3, createSphereBody, destroy } from "./physics.js";
 import { Euler, Object3D, Vector3 } from "../lib/three_v0.166.0.min.js";
 import update from "./update.js"
 import state from "./state.js";
 import controls from "./controls.js";
 import settings from "./settings.js";
+import { Snapshot } from "./snapshot.js";
+import { jsify } from "../utils.js";
 
 export class Gameobject {
     constructor(name, id, x = 0, y = 0, z = 0) {
         this.name = name;
         this.id = id;
+
         this.object = new Object3D();
         this.object.position.setX(x);
         this.object.position.setY(y);
         this.object.position.setZ(z);
+
         this.shouldDestroy = [];
         this.currentInputs = {};
-        this.snapshots = {
-            list: {},
-            set() {
-                if (!state.players[state.socket.id].rigidbody) {
-                    return;
-                }
-
-                let timestamp = Math.floor(Date.now() / 100);
-                if (!(timestamp in this.list)) {
-                    this.list[timestamp] = {
-                        position: jsify(state.players[state.socket.id].rigidbody.GetPosition(), "Vec3"),
-                        rotation: jsify(state.players[state.socket.id].rigidbody.GetRotation(), "Quat"),
-                        velocity: jsify(state.players[state.socket.id].rigidbody.GetLinearVelocity(), "Vec3"),
-                        angular: jsify(state.players[state.socket.id].rigidbody.GetAngularVelocity(), "Vec3")
-                    }
-                }
-                
-                if (Object.keys(this.list).length > 10) {
-                    let lowest = Math.min(...Object.keys(this.list));
-                    delete this.list[lowest];
-                }
-            }
-        }
+        this.magnitude = settings.physics.magnitude;
+        this.velocityRatio = settings.physics.velocityRatio;
+        this.rotationRatio = settings.physics.rotationRatio;
+        this.snapshots = new Snapshot();
         
         return this;
     }
 
-    input(id) {
-        if (this.rigidbody) {
-            let magnitude = 1;
-            let velocityRatio = 1 / 2;
-            let rotationRatio = 1 / 20;
-            let local = id === state.socket.id;
+    processInputs() {
+        let id = [this.name, this.id, ".processInputs"].join("");
+        update.add(() => {
+            let local = this.id === state.socket.id;
             let up, down, left, right;
-
+    
             if (local) {
                 [up, down, left,right] = [
-                    settings.defaultControls.up.filter((k) => controls.keysPressed.has(k)).length,
-                    settings.defaultControls.down.filter((k) => controls.keysPressed.has(k)).length,
-                    settings.defaultControls.left.filter((k) => controls.keysPressed.has(k)).length,
-                    settings.defaultControls.right.filter((k) => controls.keysPressed.has(k)).length
+                    controls.get("up"),
+                    controls.get("down"),
+                    controls.get("left"),
+                    controls.get("right"),
                 ];
-            } else {
+            } else if (state.players[id]) {
                 [up, down, left, right] = [
                     "up" in state.players[id].currentInputs,
                     "down" in state.players[id].currentInputs,
@@ -65,22 +48,24 @@ export class Gameobject {
                     "right" in state.players[id].currentInputs
                 ];
             }
-
-            if (up) {
-                this.setVelocity(0, magnitude * velocityRatio, 0, true);
-            } else if (down) {
-                this.setVelocity(0, -magnitude * velocityRatio, 0, true);
+    
+            if (this.rigidbody) {
+                if (up) {
+                    this.setVelocity(0, this.magnitude * this.velocityRatio, 0, true);
+                } else if (down) {
+                    this.setVelocity(0, -this.magnitude * this.velocityRatio, 0, true);
+                }
+    
+                if (left) {
+                    this.setRotation(this.magnitude * this.rotationRatio);
+                } else if (right) {
+                    this.setRotation(-this.magnitude * this.rotationRatio);
+                }
             }
-
-            if (left) {
-                this.setRotation(magnitude * rotationRatio);
-            } else if (right) {
-                this.setRotation(-magnitude * rotationRatio);
-            }
-
+    
             if (local) {
                 let inputDiff = [];
-
+    
                 if (up && !("up" in this.currentInputs)) {
                     this.currentInputs["up"] = true;
                     inputDiff.push("pressedUp");
@@ -118,7 +103,9 @@ export class Gameobject {
                     state.socket.emit('inputs', inputDiff);
                 }
             }
-        }
+        }, id);
+
+        this.shouldDestroy.push(id);
 
         return this;
     }
@@ -142,6 +129,7 @@ export class Gameobject {
         return this;
     }
 
+    // Sync Jolt position to ThreeJS position
     setPhysicsPos() {
         let id = [this.name, this.id, ".physicspos"].join("");
         
@@ -163,6 +151,128 @@ export class Gameobject {
         return this;
     }
 
+    interpolateNetworkPosition() {
+        let id = [this.name, this.id, ".interpolate"].join("");
+
+        update.add(() => {
+            if (this.id in state.networking.players) {
+                let data = state.networking.players[this.id];
+
+                if (this.rigidbody) {
+                    if (this.id === state.socket.id) {
+                        this.interpolateLocalPlayer();
+                    } else {
+                        let position = jsify(this.rigidbody.GetPosition(), "Vec3")
+                        let rotation = jsify(this.rigidbody.GetRotation(), "Quat")
+                        let velocity = jsify(this.rigidbody.GetLinearVelocity(), "Vec3")
+                        let angular = jsify(this.rigidbody.GetAngularVelocity(), "Vec3")
+                        let newPosition, newRotation, newVelocity, newAngular = null;
+
+                        let xDifference = Math.abs(position.x - data.position.x);
+                        let yDifference = Math.abs(position.y - data.position.y);
+
+                        if (xDifference + yDifference < 1) {
+                            delete state.networking.players[this.id];
+                        } else if (xDifference + yDifference > 20) {
+                            newPosition = Vec3(
+                                data.position.x,
+                                data.position.y,
+                                0
+                            );
+                            newRotation = Quat(
+                                data.rotation.x,
+                                data.rotation.y,
+                                data.rotation.z,
+                                data.rotation.w,
+                            );
+                            newVelocity = Vec3(
+                                data.velocity.x,
+                                data.velocity.y,
+                                data.velocity.z,
+                            );
+                            newAngular = Vec3(
+                                data.angular.x,
+                                data.angular.y,
+                                data.angular.z,
+                            );
+                        } else {
+                            let interpolated = this.interpolate(
+                                {
+                                    position: position,
+                                    rotation: rotation,
+                                    velocity: velocity,
+                                    angular: angular
+                                }, {
+                                    position: data.position,
+                                    rotation: data.rotation,
+                                    velocity: data.velocity,
+                                    angular: data.angular
+                                }
+                            );
+
+                            newPosition = Vec3(
+                                interpolated.position.x,
+                                interpolated.position.y,
+                                0
+                            );
+                            newRotation = Quat(
+                                interpolated.rotation.x,
+                                interpolated.rotation.y,
+                                interpolated.rotation.z,
+                                interpolated.rotation.w,
+                            );
+                            newVelocity = Vec3(
+                                interpolated.velocity.x,
+                                interpolated.velocity.y,
+                                interpolated.velocity.z,
+                            );
+                            newAngular = Vec3(
+                                interpolated.angular.x,
+                                interpolated.angular.y,
+                                interpolated.angular.z,
+                            );
+                        }
+
+                        if (newPosition && newRotation && newVelocity && newAngular) {
+                            state.physicsWorld.SetPositionRotationAndVelocity(
+                                this.rigidbody.GetID(),
+                                newPosition,
+                                newRotation,
+                                newVelocity,
+                                newAngular
+                            );
+
+                            destroy(newPosition, newRotation, newVelocity, newAngular);
+                        }
+                    }
+                }
+            }
+        }, id);
+
+        this.shouldDestroy.push(id);
+
+        return this;
+    }
+
+    interpolateLocalPlayer() {
+
+    }
+
+    interpolate(A, B) {
+        let out = {};
+
+        for (let key in A) {
+            out[key] = {};
+            for (let dimension in A[key]) {
+                let diff = A[key][dimension] - B[key][dimension];
+                
+                out[key][dimension] = B[key][dimension] + (diff / 2);
+            }
+        }
+
+        return out;
+    }
+
     setVelocity(x, y, z, relative = false) {
         if (this.rigidbody) {
             if (!this.rigidbody.IsActive()) {
@@ -175,21 +285,6 @@ export class Gameobject {
             let direction = !relative ? Vec3(x, y, z) : forward.Mul(y);
 
             this.rigidbody.SetLinearVelocity(direction);
-
-            if (!relative) {
-                destroy(direction);
-            }
-        }
-
-        return this;
-    }
-
-    addVelocity(x, y, z, relative = false) {
-        if (this.rigidbody) {
-            let forward = this.rigidbody.GetRotation().RotateAxisY();
-            let direction = !relative ? Vec3(x, y, z) : forward.Mul(y);
-
-            this.rigidbody.AddForce(direction);
 
             if (!relative) {
                 destroy(direction);
@@ -243,7 +338,13 @@ export class Gameobject {
         }
 
         this.parent.remove(this.object);
-        state.physicsRemoveQueue.push(this.rigidbody.GetID());
-        delete state.players[this.id];
+
+        if (this.rigidbody) {
+            state.physicsRemoveQueue.push(this.rigidbody.GetID());
+        }
+
+        if (state.players[this.id]) {
+            delete state.players[this.id];
+        }
     }
 }

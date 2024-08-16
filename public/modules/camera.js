@@ -2,9 +2,25 @@ import state from "./state.js";
 import update from "./update.js";
 
 export default {
-    following: {x: 0, y: 0, z: 0},
+    following: undefined,
+    
+    init() {
+        update.add(() => {
+            if (this.following?.position) {
+                this.centerOn(this.following.position.x, this.following.position.y, this.following.position.z);
+            }
+        }, "camera")
+    },
 
-    //TODO: Fix camera not following at great speeds
+    /**
+     * Follow object with position(x,y,z)
+     * @param object - {position: {x: ,y: ,z: }}
+     */
+    follow(object) {
+        this.following = object;
+    },
+
+    //TODO: add lerp/tween
     centerOn(x, y, z) {
         if (state.camera) {
             state.camera.position.setX(x);
@@ -12,14 +28,4 @@ export default {
             state.camera.position.setZ(z + 10);
         }
     },
-    follow(object) {
-        this.following = object;
-    },
-    init() {
-        update.add(() => {
-            if (this.following.position !== undefined) {
-                this.centerOn(this.following.position.x, this.following.position.y, this.following.position.z);
-            }
-        })
-    }
 }

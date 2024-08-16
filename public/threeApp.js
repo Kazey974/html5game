@@ -16,7 +16,6 @@ document.body.appendChild(renderer.domElement);
 
 state.level = scene;
 state.camera = camera;
-state.time = Date.now();
 
 function ticker() {
     state.deltaTime = Date.now() - state.time;
