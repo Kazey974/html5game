@@ -9,7 +9,8 @@ const server = http.createServer(app);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use("/html5game", express.static(path.join(__dirname, "public")));
+app.use("/spacegame", express.static(path.join(__dirname, "public")));
+app.use("/cannon-es", express.static(path.join(__dirname, "node_modules/cannon-es/dist")));
 
 gameServer(server);
 

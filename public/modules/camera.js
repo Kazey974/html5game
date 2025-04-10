@@ -1,11 +1,14 @@
-import state from "./state.js";
-import update from "./update.js";
-
 export default {
     following: undefined,
+    state: undefined,
+    update: undefined,
+    offset: 10,
     
-    init() {
-        update.add(() => {
+    init(state) {
+        this.state = state;
+        this.update = state.update;
+
+        this.update.add(() => {
             if (this.following?.position) {
                 this.centerOn(this.following.position.x, this.following.position.y, this.following.position.z);
             }
@@ -22,10 +25,10 @@ export default {
 
     //TODO: add lerp/tween
     centerOn(x, y, z) {
-        if (state.camera) {
-            state.camera.position.setX(x);
-            state.camera.position.setY(y);
-            state.camera.position.setZ(z + 10);
+        if (this.state.camera) {
+            this.state.camera.position.setX(x);
+            this.state.camera.position.setY(y);
+            this.state.camera.position.setZ(z + this.offset);
         }
     },
 }

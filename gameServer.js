@@ -1,8 +1,5 @@
 import { Server } from "socket.io";
-import { Gameobject } from "./objectServer.js";
-import { initPhysics } from "./physicsServer.js";
-import { jsify } from "./public/utils.js";
-import settings from "./public/modules/settings.js";
+import { Gameobject } from "./public/modules/objects.js";
 
 export const state = {
     players: {},
@@ -28,7 +25,7 @@ export const gameServer = async (server) => {
         },
     };
 
-    await initPhysics();
+    // await initPhysics();
 
     io.on("connection", (socket) => {
         console.log("IO - user connected : " + socket.id, Object.keys(state.players).length);
@@ -55,31 +52,21 @@ export const gameServer = async (server) => {
 
         if (nextInterval.get(10) && state.deltaTime) {
             for (let id in state.inputs) {
-                let magnitude = settings.physics.magnitude;
-                let velocityRatio = settings.physics.velocityRatio;
-                let rotationRatio = settings.physics.rotationRatio;
                 let player = state.players[id].object;
 
-                if ("up" in state.inputs[id]) {
-                    player.setVelocity(0, magnitude * velocityRatio, 0, true);
-                } else if ("down" in state.inputs[id]) {
-                    player.setVelocity(0, -magnitude * velocityRatio, 0, true);
-                }
-        
-                if ("left" in state.inputs[id]) {
-                    player.setRotation(magnitude * rotationRatio);
-                } else if ("right" in state.inputs[id]) {
-                    player.setRotation(-magnitude * rotationRatio);
+                if (player.rigidbody) {
+                    let [up, down, right, left] = [
+                        "up" in state.inputs[id],
+                        "down" in state.inputs[id],
+                        "right" in state.inputs[id],
+                        "left" in state.inputs[id],
+                    ];
+
+                    player.move(up, down, right, left);
                 }
             }
 
             updatePlayers();
-        }
-        
-        if (state.jolt && Object.keys(state.players).length) {
-            if (state.deltaTime) {
-                state.jolt.Step(state.deltaTime / 30, 1);
-            }
         }
     })
 
@@ -88,7 +75,7 @@ export const gameServer = async (server) => {
         let position = {x: Math.random() * 3, y: Math.random() * 3,  z: 0};
         let isValid = false;
 
-        // Will use jolt collision later
+        // Will use collision later
         while(!isValid) {
             isValid = true;
             for (let id in state.players) {
@@ -104,13 +91,13 @@ export const gameServer = async (server) => {
             }
         }
 
-        let ship = new Gameobject("ship", socket.id, position.x, position.y, position.z).addSphereBody();
+        let ship = new Gameobject("ship", socket.id, position.x, position.y, position.z, false);
 
         let newPlayer = {
             id: socket.id,
             object: ship,
             position: position,
-            color: Math.random() * 0xffffff
+            color: Math.floor(Math.random() * 0xffffff)
         };
     
         io.emit("playerJoined", {
@@ -130,6 +117,9 @@ export const gameServer = async (server) => {
                 color: state.players[id].color
             });
         }
+
+        console.log("SENDING TO : " + socket.id);
+        console.log(existingObjects);
         
         io.to(socket.id).emit("initOtherObjects", existingObjects);
     
@@ -160,10 +150,10 @@ export const gameServer = async (server) => {
             let playerState = {
                 id: id,
                 timestamp: Math.floor(Date.now() / 100),
-                position: jsify(rigidbody.GetPosition(), "Vec3"),
-                rotation: jsify(rigidbody.GetRotation(), "Quat"),
-                velocity: jsify(rigidbody.GetLinearVelocity(), "Vec3"),
-                angular: jsify(rigidbody.GetAngularVelocity(), "Vec3"),
+                position: 0,
+                rotation: 0,
+                velocity: 0,
+                angular: 0,
                 currentInputs: state.inputs[id] ?? {}
             };
 

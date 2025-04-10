@@ -2,28 +2,26 @@
 
 var camera = { position: {x: 0, y: 0, z: 0} };
 var deltaTime = 0;
-var jolt = null;
 var level = null;
 var networking = {players: {}};
-var physicsRemoveQueue = [];
-var physicsSystem = null;
-var physicsWorld = null;
 var players = [];
+var physics = null;
 var serverInputs = [];
 var socket = null;
 var time = Date.now();
+var deltaTime = 1;
+var update = null;
 
 export default {
     camera: camera,
     deltaTime: deltaTime,
-    jolt: jolt,
     level: level,
     networking: networking,
-    physicsRemoveQueue: physicsRemoveQueue,
-    physicsSystem: physicsSystem,
-    physicsWorld: physicsWorld,
     players: players,
+    physics: physics,
     serverInputs: serverInputs,
     socket: socket,
-    time: time
+    time: time,
+    deltaTime: deltaTime,
+    update: update
 };

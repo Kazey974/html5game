@@ -1,4 +1,4 @@
-import * as THREE from "./lib/three_v0.166.0.min.js";
+import * as THREE from "three";
 import state from "./modules/state.js";
 import update from "./modules/update.js";
 import game from "./game.js";
@@ -16,6 +16,7 @@ document.body.appendChild(renderer.domElement);
 
 state.level = scene;
 state.camera = camera;
+state.update = update;
 
 function ticker() {
     state.deltaTime = Date.now() - state.time;
@@ -25,4 +26,4 @@ function ticker() {
 	renderer.render(scene, camera);
 }
 
-game.init();
+game.init(state);
